@@ -13,7 +13,7 @@ class Book
   end
 
   def save
-    results = DB.exec("INSERT INTO books (title VALUES ('#{@title}') RETURNING id;")
+    results = DB.exec("INSERT INTO books (title) VALUES ('#{@title}') RETURNING id;")
     @id = results.first['id'].to_i
   end
 
@@ -30,35 +30,54 @@ class Book
 
   def ==(other_book)
     self.id == other_book.id
-    # self.title == other_book.title && self.author == other_book.author
   end
 
   def deleted
     DB.exec("DELETE FROM books WHERE id = #@id;")
   end
 
-  def update(title, author)
+  def update(title)
     @title = title
-    @author = author
-    DB.exec("UPDATE books SET title = '#{@title}', author ='#{@author}' WHERE id = #{@id} RETURNING title, author;")
+    DB.exec("UPDATE books SET title = '#{@title}' WHERE id = #{@id} RETURNING title;")
+  end
+
+  def add_combos(author_ids)
+    # author_ids.each_with_index do |author_id, index|
+    author_ids.select do |author_id|
+
+    DB.exec("INSERT INTO books_authors (author_id, book_id) VALUES (#{author_id}, #{self.id}) RETURNING id;")
+    end
   end
 
   def self.search_title(search_term)
-    results = DB.exec("SELECT * FROM books WHERE title LIKE '%#{search_term}%'")
+    results = DB.exec("SELECT title, id FROM books WHERE LOWER(title) LIKE '%#{search_term.downcase}%';")
     books = []
     results.each do |result|
-      books << Book.new({ :title => result['title'], :author => result['author'], :id => result['id'].to_i })
+      id = result['id'].to_i
+      title = result['title']
+      books << Book.new({:id => id, :title => title})
     end
     books
   end
 
-   def self.search_author(search_term)
-    results = DB.exec("SELECT * FROM books WHERE author LIKE '%#{search_term}%'")
-    books = []
+  def books_authors
+    results = DB.exec("SELECT authors.name, authors.id FROM books_authors INNER JOIN books ON (books.id = books_authors.book_id) INNER JOIN authors ON (authors.id = books_authors.author_id) WHERE books.id = #{self.id};")
+    authors = []
     results.each do |result|
-      books << Book.new({ :title => result['title'], :author => result['author'], :id => result['id'].to_i })
+      name = result['name']
+      id = result['id'].to_i
+      authors << Author.new({:name => name, :id => id})
     end
-    books
+    authors
   end
+
+  #  def self.search_author(search_term)
+  #   results = DB.exec("SELECT * FROM books WHERE author LIKE '%#{search_term}%'")
+  #   books = []
+  #   results.each do |result|
+  #     books << Book.new({ :title => result['title'], :author => result['author'], :id => result['id'].to_i })
+  #   end
+  #   books
+  # end
 
 end

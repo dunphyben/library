@@ -1,4 +1,5 @@
 require './lib/book'
+require './lib/author'
 require 'pg'
 
 DB = PG.connect(:dbname => 'library')
@@ -7,7 +8,7 @@ def main_menu
   print "\n\n********* WELCOME TO THE LIBRARY **********\n\n"
   puts "Press 'l' if you are a librarian"
   puts "Press 'p' if you are a patron"
-  puts "Press 'x' to exit"
+  puts "Press 'x' to exit\n\n"
 
   main_choice = gets.chomp
 
@@ -25,15 +26,25 @@ def main_menu
   end
 end
 
-def librarian_menu
-  print "\n\n********* LIBRARIAN MENU **********\n\n"
-  puts "Press 'n' to add a new book to the inventory"
-  puts "Press 'l' to list all books in the inventory"
-  puts "Press 't' to search for a book by title"
-  puts "Press 'a' to search for a book by author"
-  puts "Press 'u' to update a book"
-  puts "Press 'd' to delete a book from inventory"
-  puts "Press 'm' to return to the main menu"
+# def librarian_menu
+#   print "\n\n********* LIBRARIAN MENU **********\n\n"
+#   puts "Press 'n' to add a new book to the inventory"
+#   puts "Press 'l' to list all books in the inventory"
+#   puts "Press 't' to search for a book by title"
+#   puts "Press 'a' to search for a book by author"
+#   puts "Press 'u' to update a book"
+#   puts "Press 'd' to delete a book from inventory"
+#   puts "Press 'm' to return to the main menu"
+
+  def librarian_menu
+  print "\n\n", " "*8, "*"*20, " LIBRARIAN MENU ", "*"*20, "\n\n"
+  puts "\tPress 'n' to add a new book to the inventory",
+       "\tPress 'l' to list all books in the inventory",
+       "\tPress 't' to search for a book by title",
+       "\tPress 'a' to search for a book by author",
+       "\tPress 'u' to update a book",
+       "\tPress 'd' to delete a book from inventory",
+       "\tPress 'm' to return to the main menu\n\n"
 
   user_choice = gets.chomp
 
@@ -73,17 +84,50 @@ def add_book
   print "\n\n********* Add Book **********\n\n"
   print "Enter book title: "
   title = gets.chomp
-  print "Enter author name: "
+  print "Enter author names: "
   author = gets.chomp
-  Book.create({ :title => title, :author => author})
-  puts "The book #{title} by #{author} was created successfully!"
+
+  new_book = Book.create({ :title => title})
+  new_author = correct_author(author)
+  author_ids = [new_author.id]
+  author_names = [new_author.name]
+
+  more_authors = true
+  while more_authors
+    puts "Are there more authors? (y/n): "
+    more_author_choice = gets.chomp.downcase
+    if more_author_choice == 'y'
+      print "Enter author names: "
+      author = gets.chomp
+      new_author = correct_author(author)
+      author_ids << new_author.id
+      author_names << new_author.name
+    elsif more_author_choice == 'n'
+      more_authors = false
+    else
+      puts "That input was not valid. Please try again."
+    end
+  end
+
+  new_book.add_combos(author_ids)
+  puts "The book #{title} by #{author_names.join(' and ')} was created successfully!"
 end
 
 def list_books
-  puts "\nThe current books in inventory are: "
-  Book.all.each_with_index do |book, index|
-    puts "#{index + 1}. #{book.title} by #{book.author}"
+  puts "\nThe current books in inventory are: \n"
+  Book.all.collect do |book|
+    books_authors = book.books_authors.collect{|author| author.name}
+    puts "#{book.title} by #{books_authors.join(' and ')}"
   end
+end
+
+def correct_author(author_name)
+  if Author.search_author(author_name) == []
+    new_author = Author.create({:name => author_name})
+  else
+    new_author = Author.search_author(author_name).first
+  end
+  new_author
 end
 
 def delete_book
@@ -100,16 +144,19 @@ def search_by_title
   search_term = gets.chomp
   list = Book.search_title(search_term)
   list.each_with_index do |book, index|
-    puts "#{index + 1}. #{book.title} by #{book.author}"
+    books_authors = book.books_authors.collect{|author| author.name}
+    puts "#{index + 1}. #{book.title} by #{books_authors.join(' and ')}"
   end
 end
 
 def search_by_author
   print "Enter author to search books by: "
   search_term = gets.chomp
-  list = Book.search_author(search_term)
-  list.each_with_index do |book, index|
-    puts "#{index + 1}. #{book.title} by #{book.author}"
+  list = Author.search_author(search_term)
+  list.each_with_index do |author, index|
+    books_titles = author.authors_books.collect{|book| book.title}
+    puts "#{index + 1}. #{author.name} has authored the following books: "
+    puts books_titles.join("\n")
   end
 end
 
