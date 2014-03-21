@@ -67,5 +67,13 @@ describe Author do
     end
   end
 
+  describe '#update' do
+    it 'sets the name of the author to the given name and updates the database' do
+      new_author = Author.create({:name => 'Steven Hawking'})
+      new_author.update('Stephen Hawking')
+      new_author.name.should eq 'Stephen Hawking'
+    end
+  end
+
 
 end

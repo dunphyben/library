@@ -61,5 +61,13 @@ class Author
     books
   end
 
+  def deleted
+    DB.exec("DELETE FROM authors WHERE id = #@id;")
+  end
+
+  def update(name)
+    @name = name
+    DB.exec("UPDATE authors SET name = '#{@name}' WHERE id = #{@id} RETURNING name;")
+    end
 
 end

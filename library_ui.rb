@@ -40,9 +40,11 @@ end
   print "\n\n", " "*8, "*"*20, " LIBRARIAN MENU ", "*"*20, "\n\n"
   puts "\tPress 'n' to add a new book to the inventory",
        "\tPress 'l' to list all books in the inventory",
+       "\tPress 'v' to list all authors in the inventory",
        "\tPress 't' to search for a book by title",
        "\tPress 'a' to search for a book by author",
-       "\tPress 'u' to update a book",
+       "\tPress 'b' to update a book",
+       "\tPress 'u' to update an author",
        "\tPress 'd' to delete a book from inventory",
        "\tPress 'm' to return to the main menu\n\n"
 
@@ -54,6 +56,12 @@ end
     librarian_menu
   when 'l'
     list_books
+    puts "\n\n***** Press enter to return to the Librarian Menu"
+    gets
+    librarian_menu
+  when 'v'
+    list_authors
+    puts "\n\n***** Press enter to return to the Librarian Menu"
     gets
     librarian_menu
   when 't'
@@ -64,8 +72,12 @@ end
     search_by_author
     gets
     librarian_menu
-  when 'u'
+  when 'b'
     update_book
+    gets
+    librarian_menu
+  when 'u'
+    update_author
     gets
     librarian_menu
   when 'd'
@@ -115,9 +127,16 @@ end
 
 def list_books
   puts "\nThe current books in inventory are: \n"
-  Book.all.collect do |book|
+  Book.all.each_with_index do |book, index|
     books_authors = book.books_authors.collect{|author| author.name}
-    puts "#{book.title} by #{books_authors.join(' and ')}"
+    puts "\t#{index + 1}. #{book.title} by #{books_authors.join(' and ')}"
+  end
+end
+
+def list_authors
+  puts "\nThe current authors in inventory are: \n"
+  Author.all.each_with_index do |author, index|
+    puts "\t#{index + 1}. #{author.name}"
   end
 end
 
@@ -135,8 +154,13 @@ def delete_book
   puts "Enter the title of the book you would like to delete"
   delete_choice = gets.chomp
   book_to_delete = Book.search_title(delete_choice).first
+
+  authors = book_to_delete.books_authors
+  if authors.length == 1 && authors[0].authors_books.length == 1
+    authors[0].deleted
+  end
   book_to_delete.deleted
-  puts "The book #{book_to_delete.title} by #{book_to_delete.author} was successfully deleted!"
+  puts "The book #{book_to_delete.title} was successfully deleted!"
 end
 
 def search_by_title
@@ -167,10 +191,21 @@ def update_book
   book_to_update = Book.all[book_choice.to_i - 1]
   print "Enter the new title of the book: "
   new_title = gets.chomp
-  print "Enter the new author of the book: "
-  new_author = gets.chomp
-  book_to_update.update(new_title, new_author)
-  puts "The book #{new_title} by #{new_author} was successfully updated."
+  book_to_update.update(new_title)
+  puts "The book #{new_title} was successfully updated."
 end
+
+def update_author
+  list_authors
+  print "Enter the number of the author you would like to update: "
+  author_choice = gets.chomp
+  author_to_update = Author.all[author_choice.to_i - 1]
+  print "Enter the new name of the author: "
+  new_name = gets.chomp
+  author_to_update.update(new_name)
+  puts "The author #{new_name} was successfully updated."
+end
+
+
 
 main_menu
